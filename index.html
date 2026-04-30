@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gestión de Envíos</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    color: #0033a0;
+}
+
+.container {
+    width: 85%;
+    margin: auto;
+}
+
+form {
+    background: #ffcc00;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+input, button {
+    padding: 10px;
+    margin: 5px;
+}
+
+button {
+    background: #d52b1e;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #a61c14;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: #0033a0;
+    color: white;
+}
+
+td, th {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.acciones button {
+    margin-right: 5px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>Gestión de Envíos</h1>
+
+<div class="container">
+
+<form id="formEnvio">
+    <input type="hidden" id="id">
+    <input type="text" id="codigo" placeholder="Código" required>
+    <input type="text" id="descripcion" placeholder="Descripción" required>
+    <input type="text" id="destino" placeholder="Destino" required>
+    <button type="submit">Guardar</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Destino</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="tablaEnvios"></tbody>
+</table>
+
+</div>
+
+<script>
+const api = "api.php";
+
+document.getElementById("formEnvio").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    let id = document.getElementById("id").value;
+
+    let formData = new FormData();
+    formData.append("codigo", document.getElementById("codigo").value);
+    formData.append("descripcion", document.getElementById("descripcion").value);
+    formData.append("destino", document.getElementById("destino").value);
+
+    let action = id ? "editar" : "crear";
+    if (id) formData.append("id", id);
+
+    fetch(api + "?action=" + action, {
+        method: "POST",
+        body: formData
+    })
+    .then(() => {
+        document.getElementById("formEnvio").reset();
+        document.getElementById("id").value = "";
+        cargarEnvios();
+    });
+});
+
+function cargarEnvios() {
+    fetch(api + "?action=listar")
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+
+        data.forEach(e => {
+            let fecha = new Date(e.created_at).toLocaleString();
+
+            html += `
+            <tr>
+                <td>${e.id}</td>
+                <td>${e.codigo}</td>
+                <td>${e.descripcion}</td>
+                <td>${e.destino}</td>
+                <td>${fecha}</td>
+                <td class="acciones">
+                    <button onclick="editar(${e.id}, '${e.codigo}', '${e.descripcion}', '${e.destino}')">Editar</button>
+                    <button onclick="eliminar(${e.id})">Eliminar</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("tablaEnvios").innerHTML = html;
+    });
+}
+
+function editar(id, codigo, descripcion, destino) {
+    document.getElementById("id").value = id;
+    document.getElementById("codigo").value = codigo;
+    document.getElementById("descripcion").value = descripcion;
+    document.getElementById("destino").value = destino;
+}
+
+function eliminar(id) {
+    if (confirm("¿Eliminar envío?")) {
+        let formData = new FormData();
+        formData.append("id", id);
+
+        fetch(api + "?action=eliminar", {
+            method: "POST",
+            body: formData
+        })
+        .then(() => cargarEnvios());
+    }
+}
+
+cargarEnvios();
+</script>
+
+</body>
+</html>
